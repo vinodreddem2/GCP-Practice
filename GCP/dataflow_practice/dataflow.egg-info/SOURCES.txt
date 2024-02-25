@@ -1,0 +1,11 @@
+setup.py
+dataflow.egg-info/PKG-INFO
+dataflow.egg-info/SOURCES.txt
+dataflow.egg-info/dependency_links.txt
+dataflow.egg-info/requires.txt
+dataflow.egg-info/top_level.txt
+gcs_to_bq/__init__.py
+gcs_to_bq/pipeline.py
+gcs_to_bq/helper_class/Pipeline_Options.py
+gcs_to_bq/helper_class/__init__.py
+gcs_to_bq/helper_class/validation_data.py

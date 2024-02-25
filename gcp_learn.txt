@@ -1,0 +1,378 @@
+#!/bin/bash
+apt update
+apt -y install apache2
+echo "Hello World from $(hostname)  $(hostname -i)" > /var/www/html/index.html
+
+
+#!/bin/bash
+apt update
+apt -y install apache2
+echo "Hello from $(hostname)  $(hostname -i)" > /var/www/html/index.html
+
+====================================================
+
+docker build --tag flask_skeleton .
+docker run -p 5000:5000 flask_skeleton
+curl http://localhost:5000/ping
+
+gcloud run deploy flask-skeleton --region=us-central1 --source=$(pwd) --allow-unauthenticated
+
+
+curl https://flask-skeleton-mjnuyyec2q-uc.a.run.app/ping
+
+curl https://flask-skeleton-mjnuyyec2q-uc.a.run.app/version
+
+curl -X POST -H "Authorization: Bearer $(gcloud auth print-identity-token)" --header "Content-Type: application/json" -d '{"name": "Reddy", "age": 27, "city": "Bengaluru1"}'  https://flask-skeleton-mjnuyyec2q-uc.a.run.app/v1/practice/publish_data
+
+curl -X GET -H "Authorization: Bearer $(gcloud auth print-identity-token)"  https://flask-skeleton-mjnuyyec2q-uc.a.run.app/v1/practice/publish_data
+
+====================================================
+
+gcloud beta data-fusion instances describe --location=us-central1 --format="value(apiEndpoint)" practice-df-1
+https://practice-df-1-refined-kite-408510-dot-usc1.datafusion.googleusercontent.com/api
+
+
+====================================================
+
+
+python publish_to_topic.py --runner DataflowRunner --streaming True --template_location gs://gcp-practice-96/templates/publish_to_topic_pipeline --project refined-kite-408510 --region us-central1 --staging_location gs://gcp-practice-96/staging --temp_location gs://gcp-practice-96/temp  --worker_machine_type 'n1-standard-4' --setup_file './setup.py' --extra_package Faker-21.0.0.tar.gz
+
+gcloud dataflow jobs run streaming_publish_2 --gcs-location gs://gcp-practice-96/templates/publish_to_topic_pipeline --subnetwork  regions/us-central1/subnetworks/default --disable-public-ips --parameters project_name="refined-kite-408510",topic_name="dataflow_to_topic"
+
+python pubsub_to_bq.py --runner DataflowRunner --streaming True --template_location gs://gcp-practice-96/templates/pubsub_to_bq_pipeline --project refined-kite-408510 --region us-central1 --staging_location gs://gcp-practice-96/staging --temp_location gs://gcp-practice-96/temp  --worker_machine_type 'n1-standard-4'
+
+gcloud dataflow jobs run pubsub_bq_pipeline --gcs-location gs://gcp-practice-96/templates/pubsub_to_bq_pipeline --subnetwork  regions/us-central1/subnetworks/default --disable-public-ips --parameters table_name="refined-kite-408510.practice_dataset.person_tbl"
+
+
+
+
+python pubsub_to_bq.py --runner DataflowRunner --streaming True --template_location gs://gcp-practice-96/templates/windowing_pipeline --project refined-kite-408510 --region us-central1 --staging_location gs://gcp-practice-96/staging --temp_location gs://gcp-practice-96/temp  --worker_machine_type 'n1-standard-4'
+
+gcloud dataflow jobs run pipeline_1 --gcs-location gs://gcp-practice-96/templates/windowing_pipeline --subnetwork  regions/us-central1/subnetworks/default --disable-public-ips --parameters table_name="refined-kite-408510.practice_dataset.count_and_mean_tbl"
+
+
+
+python pipeline.py --runner DataflowRunner --template_location gs://gcp-practice-95/templates/gcs_to_bq_batch --project aerobic-amphora-409013 --region us-central1 --staging_location gs://gcp-practice-95/staging --temp_location gs://gcp-practice-95/temp  --worker_machine_type 'n1-standard-4' --setup_file './setup.py'
+
+gcloud dataflow jobs run gcs_to_bq_17 --gcs-location gs://gcp-practice-95/templates/gcs_to_bq_batch --subnetwork  regions/us-central1/subnetworks/default --disable-public-ips --parameters input="gs://gcp-practice-95/nyc/yellow_tripdata_2016-01.csv",project_id="aerobic-amphora-409013",dataset_id="gcp_practice",table_id="aerobic-amphora-409013.gcp_practice.nyc_trip_data",schema="VendorID;tpep_pickup_datetime;tpep_dropoff_datetime;passenger_count;trip_distance;pickup_longitude;pickup_latitude;RatecodeID;store_and_fwd_flag;dropoff_longitude;dropoff_latitude;payment_type;fare_amount;extra;mta_tax;tip_amount;tolls_amount;improvement_surcharge;total_amount"
+
+gcloud dataflow jobs run gcs_to_bq_16 --gcs-location gs://gcp-practice-95/templates/gcs_to_bq_batch --subnetwork  regions/us-central1/subnetworks/default --disable-public-ips --parameters input="gs://gcp-practice-95/nyc/sample_batch.csv",project_id="aerobic-amphora-409013",dataset_id="gcp_practice",table_id="aerobic-amphora-409013.gcp_practice.nyc_trip_tbl",schema="VendorID;tpep_pickup_datetime;tpep_dropoff_datetime;passenger_count;trip_distance;pickup_longitude;pickup_latitude;RatecodeID;store_and_fwd_flag;dropoff_longitude;dropoff_latitude;payment_type;fare_amount;extra;mta_tax;tip_amount;tolls_amount;improvement_surcharge;total_amount"
+
+==================================================
+
+
+- randomgen_function:
+    call: http.get
+    args:
+        url: https://flask-skeleton-mjnuyyec2q-uc.a.run.app/v1/practice/publish_data
+    result: randomgen_result
+- returnOutput:
+    return: '${result_from_cloudrun}'
+
+
+
+==================================================
+
+flex_template
+
+
+gcloud artifacts repositories create repo-for-flex-template  --repository-format=docker  --location=us-central1 --async
+
+gcloud builds submit --tag us-central1-docker.pkg.dev/refined-kite-408510/repo-for-flex-template/dataflow/streaming-flex-template:latest .
+
+gcloud dataflow flex-template build gs://gcp-practice-96/templates/streaming-flex-pipeline \
+    --image "us-central1-docker.pkg.dev/refined-kite-408510/repo-for-flex-template/dataflow/streaming-flex-template:latest" \
+    --sdk-language "PYTHON" \
+    --metadata-file "metadata.json"
+
+
+gcloud dataflow flex-template run "sample-flex-job-3" \
+    --template-file-gcs-location "gs://gcp-practice-96/templates/streaming-flex-pipeline" \
+    --parameters subscription="projects/refined-kite-408510/subscriptions/sample-test-sub" \
+    --parameters table_name="refined-kite-408510:practice_dataset.count_and_mean_tbl" \
+    --region "us-central1"
+
+-----------------------------------------------
+
+gcloud artifacts repositories create repo-for-flex-template  --repository-format=docker  --location=us-east1 --async
+
+gcloud auth configure-docker us-east1-docker.pkg.dev
+
+gcloud builds submit --tag us-east1-docker.pkg.dev/aerobic-amphora-409013/repo-for-flex-template1/dataflow/batch-flex-template3:latest .
+
+gcloud dataflow flex-template build gs://gcp-practice-95/templates/batch-flex-pipeline3 \
+    --image "us-east1-docker.pkg.dev/aerobic-amphora-409013/repo-for-flex-template1/dataflow/batch-flex-template3:latest" \
+    --sdk-language "PYTHON" \
+    --metadata-file "metadata.json"
+
+gcloud dataflow flex-template run "test-template-5" \
+    --template-file-gcs-location "gs://gcp-practice-95/templates/batch-flex-pipeline3" \
+    --parameters input="gs://gcp-practice-95/nyc/sample_batch.csv" \
+    --parameters project_id="aerobic-amphora-409013" \
+    --parameters table_id="aerobic-amphora-409013.gcp_practice.nyc_trip_data" \
+    --parameters schema="VendorID;tpep_pickup_datetime;tpep_dropoff_datetime;passenger_count;trip_distance;pickup_longitude;pickup_latitude;RatecodeID;store_and_fwd_flag;dropoff_longitude;dropoff_latitude;payment_type;fare_amount;extra;mta_tax;tip_amount;tolls_amount;improvement_surcharge;total_amount" \
+    --parameters setup_file="/dataflow/template/setup.py" \
+	--region "us-east1"
+	
+
+
+
+gcloud dataflow flex-template build gs://gcp-practice-95/templates/gcs_to_bq_batch \
+    --image "gcr.io/aerobic-amphora-409013/gcs_to_bq_image:latest" \
+    --sdk-language "PYTHON" \
+    --metadata-file "metadata.json"
+
+gcloud dataflow flex-template run "gcs-bq-batch-1" \
+    --template-file-gcs-location "gs://gcp-practice-95/templates/gcs_to_bq_batch" \
+    --parameters input="gs://gcp-practice-95/nyc/sample_batch.csv" \
+    --parameters project_id="aerobic-amphora-409013" \
+    --parameters table_id="aerobic-amphora-409013.gcp_practice.nyc_trip_data" \
+    --parameters schema="VendorID;tpep_pickup_datetime;tpep_dropoff_datetime;passenger_count;trip_distance;pickup_longitude;pickup_latitude;RatecodeID;store_and_fwd_flag;dropoff_longitude;dropoff_latitude;payment_type;fare_amount;extra;mta_tax;tip_amount;tolls_amount;improvement_surcharge;total_amount" \
+    --parameters setup_file="/dataflow/template/setup.py" \
+	--region "us-central1"
+	 
+======================================
+
+python pipeline_with_log.py --project='refined-kite-408510' --region='us-central1' --runner='DataflowRunner' --input_path='gsm://gcp-practice-96/source/data1.csv' --staging_location='gs://gcp-practice-96/staging' --temp_location='gs://gcp-practice-96/temp'	 
+	 
+
+
+=====================================
+
+gcloud beta data-fusion instances list --project=aerobic-amphora-409013 --location=us-central1
+
+gcloud beta data-fusion operations list --project=aerobic-amphora-409013 --location=us-central1
+
+gcloud beta data-fusion operations list  --project=aerobic-amphora-409013 --location=us-central1 --instance=gcp-practice-df-95
+
+========================================
+
+
+gcloud composer environments run gcp-practice-composer1 \
+  --location us-central1 \
+  connections add -- \
+  --conn-uri "sendgrid://api_key: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@smtp.sendgrid.net:587" \
+  sendgrid_default
+
+
+=======================================
+
+openssl rand 32 > secret.txt
+
+gcloud kms encrypt --location global --keyring gcp-test-1 --key gcppractice --plaintext-file secret.txt --ciphertext-file mysecret.txt.encrypted
+
+base64 mysecret.txt.encrypted >> wrappedkey.txt
+
+
+
+=====================================
+
+
+
+
+--CPnws+oGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIF58qsr6OXQdDMLou9obTYTwaMZJJi9YLsuJhviCXSxVGAEQARj58LPqBiAB
+
+
+-- SELECT KEYS.KEYSET_TO_JSON(
+-- FROM_BASE64("CPnws+oGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIF58qsr6OXQdDMLou9obTYTwaMZJJi9YLsuJhviCXSxVGAEQARj58LPqBiAB"));
+
+-- SELECT AEAD.ENCRYPT(
+-- FROM_BASE64("CPnws+oGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIF58qsr6OXQdDMLou9obTYTwaMZJJi9YLsuJhviCXSxVGAEQARj58LPqBiAB"), 
+-- "8309005456", 
+-- "practice") AS encrypted_bytes
+
+
+SELECT AEAD.DECRYPT_STRING(
+FROM_BASE64("CPnws+oGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIF58qsr6OXQdDMLou9obTYTwaMZJJi9YLsuJhviCXSxVGAEQARj58LPqBiAB"), 
+FROM_BASE64("AW1M+HmeMOjJd07wkKj/czYMBLKDEQYY4czGwai5JaUA8Y+fhxyvGn8+Xg=="),
+"practice") as decrypted_string;
+
+
+
+========================
+
+CREATE or REPLACE FUNCTION `aerobic-amphora-409013.gcp_practice`.getSecretKey1()
+RETURNS STRING
+LANGUAGE js
+  OPTIONS (
+    library=['gs://gcp-practice-95/bundleSecret1.js'])
+AS r"""
+  return accessSecretVersion(projectId,secretId);
+""";
+
+
+====================
+const path = require('path');
+
+module.exports = {
+  entry: '/home/gcprekhathummala/webpack_demo/getSecret.js',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bundleSecret.js'
+  },
+  target: 'node', // Ensures the code runs in a Node.js environment
+  externals: {
+    // Exclude some modules from bundling if needed
+    'pg': 'commonjs pg', 
+    'lodash': 'commonjs lodash'
+  }
+};
+
+=======================
+
+gcloud dataproc clusters create sample-spark-test --region=us-central1
+
+
+gcloud dataproc jobs submit pyspark --cluster=sample-spark-test --region=us-central1 gs://gcp-practice-95/gcs_to_bq.py --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar
+
+
+
+==========================
+
+import functions_framework
+import json
+from google.cloud import secretmanager
+
+@functions_framework.http
+def hello_http(request):
+    # Create the Secret Manager client.
+    client = secretmanager.SecretManagerServiceClient()
+
+    project_id = "aerobic-amphora-409013"
+    secret_id = "encryption_encoded_key"
+    version_id = "latest"
+    # Build the resource name of the secret version.
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+
+    # Access the secret version.
+    response = client.access_secret_version(name=name)
+
+    # Return the decoded payload.
+    val = response.payload.data.decode('UTF-8')
+    # return {'encrypt_key':val}
+
+    return json.dumps({'replies': [val]})
+
+curl -H "Authorization: bearer $(gcloud auth print-identity-token)" -X POST https://us-central1-aerobic-amphora-409013.cloudfunctions.net/gcp-function
+
+bq mk --connection --display_name='my_gcf_conn' \
+      --connection_type=CLOUD_RESOURCE \
+      --project_id=$(gcloud config get-value project) \
+      --location=US  gcf-conn
+
+bq show --location=US --connection gcf-conn
+bqcx-648571287062-x8c5@gcp-sa-bigquery-condel.iam.gserviceaccount.com
+
+CREATE OR REPLACE FUNCTION gcp_practice.get_secretkey() RETURNS STRING
+REMOTE WITH CONNECTION `aerobic-amphora-409013.us.gcf-conn`
+    OPTIONS (
+        endpoint = 'https://us-central1-aerobic-amphora-409013.cloudfunctions.net/gcp-function'
+    )
+
+
+SELECT AEAD.DECRYPT_STRING(
+FROM_BASE64((SELECT (`aerobic-amphora-409013.gcp_practice`.get_secretkey()))), 
+FROM_BASE64("AW1M+HmeMOjJd07wkKj/czYMBLKDEQYY4czGwai5JaUA8Y+fhxyvGn8+Xg=="),
+"practice") as decrypted_string;
+
+SELECT name, AEAD.DECRYPT_STRING(
+FROM_BASE64((SELECT (`aerobic-amphora-409013.gcp_practice`.get_secretkey()))), 
+FROM_BASE64(phone_number),
+"practice") as decrypted_string
+
+from `aerobic-amphora-409013.gcp_practice.test_tbl`
+
+====================================================
+
+
+
+
+
+
+
+
+
+cloud function code:
+
+import io
+import base64
+import json
+import functions_framework
+
+from tink import KeysetHandle 
+from tink import JsonKeysetReader
+from tink import aead, cleartext_keyset_handle
+
+from google.cloud import secretmanager
+
+def hello_http(request):
+
+    request_json = request.get_json()
+    calls = request_json['calls']
+    
+    val_to_decrypt = []
+    for call in calls:
+        for x in call:
+            print("x:",x)
+            val_to_decrypt.append(x)
+
+    # Create the Secret Manager client.
+    client = secretmanager.SecretManagerServiceClient()
+
+    project_id = "aerobic-amphora-409013"
+    secret_id = "encryption_key"
+    version_id = "latest"
+    # Build the resource name of the secret version.
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+
+    # Access the secret version.
+    response = client.access_secret_version(name=name)
+
+    # Return the decoded payload.
+    keyset = response.payload.data.decode('UTF-8')
+    # return {'encrypt_key':val}
+
+    aead.register()
+
+    reader = JsonKeysetReader(keyset)
+    
+    keyset_handle1 = cleartext_keyset_handle.read(reader)
+
+    aead_primitive = keyset_handle1.primitive(aead.Aead)
+
+    d_val = base64.b64decode(val_to_decrypt[0])
+
+    plain_text = aead_primitive.decrypt(d_val,b'practice')
+
+
+    return json.dumps({'replies': [plain_text.decode('ascii')]})
+
+
+
+CREATE OR REPLACE FUNCTION gcp_practice.decrypt_func(encrypt_val string) RETURNS STRING
+REMOTE WITH CONNECTION `aerobic-amphora-409013.us.gcf-conn`
+    OPTIONS (
+        endpoint = 'https://us-central1-aerobic-amphora-409013.cloudfunctions.net/gcp-function'
+    )
+
+
+==========
+git secret ghu_g7tSOrId5PmXMehkyYyuTyWx7CwoH23n2sbO
+=========
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

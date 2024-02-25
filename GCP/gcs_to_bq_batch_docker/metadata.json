@@ -1,0 +1,32 @@
+{
+    "name": "batch beam python flex template",
+    "description": "beam pipeline for python flex template.",
+    "parameters": [
+      {
+        "name": "input",
+        "label": "Input bucket url path .",
+        "helpText": "Name of the input file name to consume from."
+      },
+      {
+        "name": "project_id",
+        "label": "Input project name .",
+        "helpText": "Name of the input project name to consume from."
+      },
+      {
+        "name": "table_id",
+        "label": "BigQuery output table name.",
+        "helpText": "Name of the BigQuery output table name."
+      },
+      {
+        "name": "schema",
+        "label": "BigQuery output table schema.",
+        "helpText": "Specify of the BigQuery output table schema."
+      },
+      {
+        "name": "setup_file",
+        "label": "setup_file",
+        "helpText": "Path to Python setup.py in the docker image."
+      }
+
+    ]
+  }

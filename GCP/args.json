@@ -1,0 +1,12 @@
+{
+  "arguments" : [
+    {
+      "name": "input.path",
+      "value": "gs://reusable-pipeline-tutorial/user-emails.txt"
+    },
+    {
+      "name": "directives",
+      "value": "send-to-error !dq:isEmail(body)"
+    }
+  ]
+}

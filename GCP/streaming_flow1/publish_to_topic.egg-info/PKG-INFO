@@ -1,0 +1,4 @@
+Metadata-Version: 2.1
+Name: publish-to-topic
+Version: 0.1
+Requires-Dist: faker==21.0.0

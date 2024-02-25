@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: dataflow
+Version: 1.0
+Author: gcpthummala
+Author-email: gcpthummala95@gmail.com
+Requires-Dist: protobuf==4.21.12
+Requires-Dist: mysql-connector-python==8.2.0

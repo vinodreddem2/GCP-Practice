@@ -1,0 +1,200 @@
+step1:
+
+	generate keyset using bigquery inbuit function
+	SELECT KEYS.NEW_KEYSET('AEAD_AES_GCM_256');
+	
+	gives below keyset in encoded 
+	CK+0nrIHEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIOmdlAsdTpns9kwR3xJqN8kbLE9M6cCHuhqmMTNB7ZUlGAEQARivtJ6yByAB
+	
+	use statement 
+	
+	SELECT KEYS.KEYSET_TO_JSON(FROM_BASE64("CK+0nrIHEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIOmdlAsdTpns9kwR3xJqN8kbLE9M6cCHuhqmMTNB7ZUlGAEQARivtJ6yByAB"));
+	
+	gives keys details
+	{"key":[{"keyData":{"keyMaterialType":"SYMMETRIC","typeUrl":"type.googleapis.com/google.crypto.tink.AesGcmKey","value":"GiDpnZQLHU6Z7PZMEd8SajfJGyxPTOnAh7oapjEzQe2VJQ=="},"keyId":1984404015,"outputPrefixType":"TINK","status":"ENABLED"}],"primaryKeyId":1984404015}
+	
+	
+step2:
+	store that keys details in secretmanager
+	
+
+step3:
+	read the keydetails from secretmanager, and use that to encrypt and insert to bigquery table
+	
+	use script below
+	
+		import io
+		import base64
+		import json
+		
+		from tink import KeysetHandle 
+		from tink import JsonKeysetWriter, JsonKeysetReader
+		from tink import aead, cleartext_keyset_handle
+		
+		from google.cloud import secretmanager
+		from google.cloud import bigquery
+		
+		def access_secret_version():
+			# Create the Secret Manager client.
+			client = secretmanager.SecretManagerServiceClient()
+		
+			project_id = "aerobic-amphora-409013"
+			secret_id = "encryption_key"
+			version_id = "latest"
+			# Build the resource name of the secret version.
+			name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+		
+			# Access the secret version.
+			response = client.access_secret_version(name=name)
+		
+			# Return the decoded payload.
+			encrypt_key = response.payload.data.decode('UTF-8')
+			return encrypt_key
+		
+		def encrypt_data(plaintext):
+			
+			keyset = access_secret_version() 
+		
+			aead.register()
+		
+			reader = JsonKeysetReader(keyset)
+			
+			keyset_handle1 = cleartext_keyset_handle.read(reader)
+		
+			aead_primitive = keyset_handle1.primitive(aead.Aead)
+			tink_ciphertext = aead_primitive.encrypt(plaintext, b'practice')
+			print(f"tink_ciphertext : {tink_ciphertext} ")
+		
+		
+			# plain_text = aead_primitive.decrypt(tink_ciphertext,b'practice')
+			# print(f"plain_text : {plain_text} ")
+		
+		
+			return base64.b64encode(tink_ciphertext).decode()
+		
+		
+		
+		# data_to_encrypt = "abcedef".encode('utf-8')
+		# encrypt_data(data_to_encrypt)
+		
+		
+		
+		
+		def write_to_bq():
+			client = bigquery.Client(project="aerobic-amphora-409013")
+			dataset_ref = client.dataset("gcp_practice")
+			table_ref = dataset_ref.table("test_tbl")
+		
+			row = {"name":"sai","phone_number":"1234567890","city":"Bangalore"}
+		
+			row['phone_number'] = encrypt_data(row['phone_number'].encode('utf-8'))
+		
+			print(f" row : {row}")
+		
+			bq_rows = []
+			bq_rows.append(row)
+			if bq_rows:
+				client.insert_rows_json(table=table_ref, json_rows=bq_rows)
+		
+		write_to_bq()
+		
+		
+		
+
+step4:
+
+	we need to use cloudfunction to decrypt the encrypted value using UDF function
+	
+	for that , first we need to create bigquery connection using below command
+	
+	bq mk --connection --display_name='my_gcf_conn' \
+      --connection_type=CLOUD_RESOURCE \
+      --project_id=$(gcloud config get-value project) \
+      --location=US  gcf-conn
+
+	run below command to see serviceaccountid and  we use that id in cloud function permissions to invoke url from bigquery editor
+	
+	bq show --location=US --connection gcf-conn
+		
+		bqcx-648571287062-x8c5@gcp-sa-bigquery-condel.iam.gserviceaccount.com
+		
+	create udf function 
+
+			CREATE OR REPLACE FUNCTION gcp_practice.decrypt_func(encrypt_val string) RETURNS STRING
+			REMOTE WITH CONNECTION `aerobic-amphora-409013.us.gcf-conn`
+			OPTIONS (
+						endpoint = 'https://us-central1-aerobic-amphora-409013.cloudfunctions.net/gcp-function'
+					)
+		
+		
+	create cloud function
+		
+	main.py
+	
+		import io
+		import base64
+		import json
+		import functions_framework
+		
+		from tink import KeysetHandle 
+		from tink import JsonKeysetReader
+		from tink import aead, cleartext_keyset_handle
+		
+		from google.cloud import secretmanager
+
+		def hello_http(request):
+
+			request_json = request.get_json()
+			calls = request_json['calls']
+			
+			val_to_decrypt = []
+			for call in calls:
+				for x in call:
+					print("x:",x)
+					val_to_decrypt.append(x)
+			
+			# Create the Secret Manager client.
+			client = secretmanager.SecretManagerServiceClient()
+			
+			project_id = "aerobic-amphora-409013"
+			secret_id = "encryption_key"
+			version_id = "latest"
+			# Build the resource name of the secret version.
+			name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+			
+			# Access the secret version.
+			response = client.access_secret_version(name=name)
+			
+			# Return the decoded payload.
+			keyset = response.payload.data.decode('UTF-8')
+			# return {'encrypt_key':val}
+			
+			aead.register()
+			
+			reader = JsonKeysetReader(keyset)
+			
+			keyset_handle1 = cleartext_keyset_handle.read(reader)
+			
+			aead_primitive = keyset_handle1.primitive(aead.Aead)
+			
+			d_val = base64.b64decode(val_to_decrypt[0])
+			
+			plain_text = aead_primitive.decrypt(d_val,b'practice')
+			
+			
+			return json.dumps({'replies': [plain_text.decode('ascii')]})
+		
+		
+		
+	requirements.txt
+			
+			# Function dependencies, for example:
+			# package>=version
+			functions-framework
+			google-cloud-secret-manager
+			tink
+			
+			
+	after creating function, use below statement to call udf that already created
+	
+	select gcp_practice.decrypt_func("AW1M+Hn5JfmVoDhH10JkR8k0XDcZvZxTxcRpGeuZ73KJkBZ8Cr+B9hshlw==")
