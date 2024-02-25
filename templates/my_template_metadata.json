@@ -1,0 +1,19 @@
+{
+    "name": "my-dataflow-template",
+    "description": "My Dataflow Template",
+    "parameters": [
+      {
+        "name": "inputFile",
+        "label": "Input File",
+        "helpText": "Path to the input file",
+        "paramType": "STRING"
+      },
+      {
+        "name": "outputPath",
+        "label": "Output Path",
+        "helpText": "Path to the output directory",
+        "paramType": "STRING"
+      }
+    ]
+  }
+  

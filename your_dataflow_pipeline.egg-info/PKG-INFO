@@ -1,0 +1,4 @@
+Metadata-Version: 2.1
+Name: your-dataflow-pipeline
+Version: 0.1
+Requires-Dist: apache-beam[gcp]==2.27.0
